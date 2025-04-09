@@ -7,14 +7,44 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 
 public class Brick {
-    int bricksXPos[] = {130*5, 130*6, 130*8, 130*10, 130*12, 130*14, 130*16, 130*18, 130*20, 130*23, 130*25};
+    // Gạch phá được (breakable bricks) - xếp tùy ý
+    int bricksXPos[] = {
+            150*2, 150*3, 150*4,             // Nhóm trên trái
+            150*10, 150*11, 150*12,          // Nhóm giữa trên
+            150*6, 150*7, 150*8,            // Nhóm giữa trái
+            150*14, 150*15,                 // Nhóm giữa dưới
+            150*5, 150*5, 150*5,            // Cột ngắn trên
 
-    int bricksYPos[] = {260, 260, 260, 260, 260, 130*3, 130*5, 130*6, 130*7, 130*8, 130*8};
+    };
 
-    int solidBricksXPos[] = {0, 130};
-    int solidBricksYPos[] = {0, 130};
+    int bricksYPos[] = {
+            150*1, 150*1, 150*1,             // Nhóm trên trái
+            150*2, 150*2, 150*2,             // Nhóm giữa trên
+            150*5, 150*5, 150*5,             // Nhóm giữa trái
+            150*6, 150*6,                    // Nhóm giữa dưới
+            150*3, 150*4, 150*5,             // Cột ngắn trên
+    };
 
-    int brickON[] = new int[11];
+    // Gạch không phá được (solid bricks) - xếp tùy ý
+    int solidBricksXPos[] = {
+            150*1, 150*2, 150*3,             // Nhóm trên trái
+            150*9, 150*10, 150*11,           // Nhóm trên giữa
+            150*15,
+            150*4, 150*4, 150*4,            // Cột trên
+            150*12, 150*12, 150*12,          // Cột giữa
+            150*7, 150*8, 150*9             // Nhóm dưới trái
+    };
+
+    int solidBricksYPos[] = {
+            150*2, 150*2, 150*2,             // Nhóm trên trái
+            150*1, 150*1, 150*1,             // Nhóm trên giữa
+            150*3,
+            150*6, 150*7, 150*8,             // Cột trên
+            150*4, 150*5, 150*6,             // Cột giữa
+            150*7, 150*7, 150*7              // Nhóm dưới trái
+    };
+
+    int brickON[] = new int[bricksXPos.length];
     private Bitmap breakBrickImage;
     private Bitmap solidBrickImage;
 
@@ -44,8 +74,8 @@ public class Brick {
         for (int i = 0; i < brickON.length; i++) {
             if (brickON[i] == 1) {
                 Rect bulletRect = new Rect(x, y, x + 26, y + 26);
-                Rect brickRect = new Rect(bricksXPos[i], bricksYPos[i], bricksXPos[i] + 130,
-                        bricksYPos[i] + 130);
+                Rect brickRect = new Rect(bricksXPos[i], bricksYPos[i], bricksXPos[i] + 150,
+                        bricksYPos[i] + 150);
                 if (bulletRect.intersect(brickRect)) {
                     brickON[i] = 0;
                     return true;
@@ -58,8 +88,8 @@ public class Brick {
     public boolean checkSolidCollision(int x, int y) {
         for (int i = 0; i < solidBricksXPos.length; i++) {
             Rect bulletRect = new Rect(x, y, x + 26, y + 26);
-            Rect brickRect = new Rect(solidBricksXPos[i], solidBricksYPos[i], solidBricksXPos[i] + 130,
-                    solidBricksYPos[i] + 130);
+            Rect brickRect = new Rect(solidBricksXPos[i], solidBricksYPos[i], solidBricksXPos[i] + 150,
+                    solidBricksYPos[i] + 150);
             if (bulletRect.intersect(brickRect)) {
                 return true;
             }
@@ -69,29 +99,26 @@ public class Brick {
 
     public boolean checkTankCollision(int x, int y) {
         for (int i = 0; i < bricksXPos.length; i++) {
-            if (brickON[i] == 1) { // Nếu gạch còn tồn tại
-                Rect tankRect = new Rect(x, y, x + 130, y + 130);
-                Rect brickRect = new Rect(bricksXPos[i], bricksYPos[i], bricksXPos[i] + 130, bricksYPos[i] + 130);
+            if (brickON[i] == 1) {
+                Rect tankRect = new Rect(x, y, x + 150, y + 150);
+                Rect brickRect = new Rect(bricksXPos[i], bricksYPos[i], bricksXPos[i] + 150, bricksYPos[i] + 150);
                 if (tankRect.intersect(brickRect)) {
-                    return true; // Va chạm
+                    return true;
                 }
             }
         }
-        return false; // Không va chạm
+        return false;
     }
 
     public boolean checkTankSolidCollision(int x, int y) {
         for (int i = 0; i < solidBricksXPos.length; i++) {
-            Rect tankRect = new Rect(x, y, x + 130, y + 130);
+            Rect tankRect = new Rect(x, y, x + 150, y + 150);
             Rect brickRect = new Rect(solidBricksXPos[i], solidBricksYPos[i],
-                    solidBricksXPos[i] + 130, solidBricksYPos[i] + 130);
+                    solidBricksXPos[i] + 150, solidBricksYPos[i] + 150);
             if (tankRect.intersect(brickRect)) {
-                return true; // Va chạm với gạch cứng
+                return true;
             }
         }
-        return false; // Không va chạm
+        return false;
     }
-
 }
-
-

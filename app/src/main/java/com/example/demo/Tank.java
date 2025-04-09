@@ -15,7 +15,11 @@ public class Tank {
     private Bitmap tankUp, tankDown, tankLeft, tankRight;
     private ArrayList<Bullet> bullets = new ArrayList<>();
     private static final int MAX_BULLETS = 3;
+    private long lastFireTime;
+    private static final long FIRE_DELAY = 1000;
+    private boolean alive = true; // Thêm trạng thái sống
 
+    // Getters và setters
     public Bitmap getTankImage() {
         return TankImage;
     }
@@ -76,63 +80,63 @@ public class Tank {
         return bullets;
     }
 
-    public Tank(Context context, int tankX, int tankY, Bitmap tankUp, Bitmap tankDown, Bitmap tankLeft, Bitmap tankRight){
+    public boolean isAlive() {
+        return alive;
+    }
+
+    public void setAlive(boolean alive) {
+        this.alive = alive;
+    }
+
+    public Tank(Context context, int tankX, int tankY, Bitmap tankUp, Bitmap tankDown,
+                Bitmap tankLeft, Bitmap tankRight) {
         TankX = tankX;
         TankY = tankY;
-
         this.tankUp = tankUp;
         this.tankDown = tankDown;
         this.tankLeft = tankLeft;
         this.tankRight = tankRight;
-
         TankImage = tankUp;
+        lastFireTime = 0;
     }
 
     public void draw(Canvas canvas) {
-        canvas.drawBitmap(TankImage, TankX, TankY, null);
-    }
-
-    public void moveTank(int deltaX, int deltaY, Brick brick) {
-        int newX = TankX + deltaX;
-        int newY = TankY + deltaY;
-
-        // Kiểm tra va chạm với tường
-        if (brick.checkTankCollision(newX, newY) || brick.checkTankSolidCollision(newX, newY) ||
-                newX < 0 || newX >  130*25||
-                newY < 0 || newY > 130*8) {
-            // Nếu có va chạm, xe quay vào hướng tường mà không di chuyển qua
-            if (deltaX > 0) {
-                TankImage = tankRight; // Quay sang phải
-            } else if (deltaX < 0) {
-                TankImage = tankLeft; // Quay sang trái
-            } else if (deltaY > 0) {
-                TankImage = tankDown; // Quay xuống
-            } else if (deltaY < 0) {
-                TankImage = tankUp; // Quay lên
-            }
-        } else {
-            // Nếu không va chạm, xe di chuyển bình thường
-            setTankX(TankX += deltaX);
-            setTankY(TankY += deltaY);
-
-            // Cập nhật hình ảnh của xe theo hướng di chuyển
-            if (deltaX > 0) {
-                TankImage = tankRight; // Quay sang phải
-            } else if (deltaX < 0) {
-                TankImage = tankLeft; // Quay sang trái
-            } else if (deltaY > 0) {
-                TankImage = tankDown; // Quay xuống
-            } else if (deltaY < 0) {
-                TankImage = tankUp; // Quay lên
-            }
+        if (alive) { // Chỉ vẽ nếu còn sống
+            canvas.drawBitmap(TankImage, TankX, TankY, null);
         }
     }
 
+    public void moveTank(int deltaX, int deltaY, Brick brick) {
+        if (!alive) return;
+        int newX = TankX + deltaX;
+        int newY = TankY + deltaY;
+
+        // Giới hạn trong 25x9
+        if (brick.checkTankCollision(newX, newY) || brick.checkTankSolidCollision(newX, newY) ||
+                newX < 0 || newX > 150 * 25 || newY < 0 || newY > 150 * 9) {
+            if (deltaX > 0) TankImage = tankRight;
+            else if (deltaX < 0) TankImage = tankLeft;
+            else if (deltaY > 0) TankImage = tankDown;
+            else if (deltaY < 0) TankImage = tankUp;
+        } else {
+            setTankX(TankX += deltaX);
+            setTankY(TankY += deltaY);
+            if (deltaX > 0) TankImage = tankRight;
+            else if (deltaX < 0) TankImage = tankLeft;
+            else if (deltaY > 0) TankImage = tankDown;
+            else if (deltaY < 0) TankImage = tankUp;
+        }
+    }
+
+    public boolean canFire() {
+        long currentTime = System.currentTimeMillis();
+        return (currentTime - lastFireTime >= FIRE_DELAY && bullets.size() < MAX_BULLETS && alive);
+    }
+
     public void fire(final View2Player view2Player) {
-        if (bullets.size() < MAX_BULLETS) {
+        if (canFire()) {
             Bullet newBullet = new Bullet();
 
-            // Đặt vị trí đạn theo hướng xe
             if (TankImage == tankUp) {
                 newBullet.setX(TankX + 40);
                 newBullet.setY(TankY);
@@ -150,45 +154,44 @@ public class Tank {
                 newBullet.setY(TankY + 45);
                 newBullet.setDirection("right");
             }
-            bullets.add(newBullet); // Thêm đạn ngay lập tức
-            moveBullets(view2Player); // Gọi hàm di chuyển đạn ngay lập tức
+            bullets.add(newBullet);
+            moveBullets(view2Player);
+            lastFireTime = System.currentTimeMillis();
         }
     }
 
     private Handler bulletHandler = new Handler();
     private Runnable bulletRunnable;
+
     public void moveBullets(final View2Player view2Player) {
-        if (bulletRunnable == null) { // Đảm bảo không tạo nhiều luồng
+        if (bulletRunnable == null) {
             bulletRunnable = new Runnable() {
                 @Override
                 public void run() {
                     for (Bullet bullet : bullets) {
-                        bullet.move(bullet.getDirection()); // Di chuyển tất cả đạn
+                        bullet.move(bullet.getDirection());
                     }
-                    view2Player.invalidate(); // Vẽ lại
+                    view2Player.invalidate();
 
                     Iterator<Bullet> iterator = bullets.iterator();
                     while (iterator.hasNext()) {
                         Bullet bullet = iterator.next();
-                        if (bulletOutOfScreen(view2Player, bullet)) { // Kiểm tra nếu đạn bay ra khỏi màn hình
-                            iterator.remove(); // Xóa viên đạn khỏi danh sách
+                        if (bulletOutOfScreen(view2Player, bullet)) {
+                            iterator.remove();
                         }
                     }
-
-
-                    bulletHandler.postDelayed(this, 50); // Lặp lại mỗi 50ms
+                    bulletHandler.postDelayed(this, 50);
                 }
             };
             bulletHandler.post(bulletRunnable);
         }
-        view2Player.invalidate(); // Vẽ lại màn hình
+        view2Player.invalidate();
     }
 
     private boolean bulletOutOfScreen(View2Player view2Player, Bullet bullet) {
-        return bullet.getX() < 0 || bullet.getX() > view2Player.getWidth() ||
-                bullet.getY() < 0 || bullet.getY() > view2Player.getHeight() ||
+        return bullet.getX() < 0 || bullet.getX() > 150 * 25 ||
+                bullet.getY() < 0 || bullet.getY() > 150 * 8 ||
                 view2Player.getBrick().checkCollision(bullet.getX(), bullet.getY()) ||
                 view2Player.getBrick().checkSolidCollision(bullet.getX(), bullet.getY());
     }
-
 }
